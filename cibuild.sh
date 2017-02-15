@@ -7,12 +7,14 @@ usage()
     echo "usage: cibuild.sh [options]"
     echo ""
     echo "Options"
-    echo "  --debug               Build Debug (default)"
-    echo "  --release             Build Release"
-    echo "  --skiptest            Do not run tests"
-    echo "  --skipcrossgen        Do not crossgen the bootstrapped compiler"
-    echo "  --skipcommitprinting  Do not print commit information"
-    echo "  --nocache       Force download of toolsets"
+    echo "  --debug                      Build Debug (default)"
+    echo "  --release                    Build Release"
+    echo "  --skiptest                   Do not run tests"
+    echo "  --skipcrossgen               Do not crossgen the bootstrapped compiler"
+    echo "  --skipcommitprinting         Do not print commit information"
+    echo "  --nocache                    Force download of toolsets"
+    echo "  --bootstrap_cli_path         Path to prebuilt project.json based cli"
+    echo "  --bootstrap_msbuild_cli_path Path to prebuild msbuild based cli"
 }
 
 BUILD_CONFIGURATION=Debug
@@ -20,6 +22,7 @@ USE_CACHE=true
 SKIP_TESTS=false
 SKIP_CROSSGEN=false
 SKIP_COMMIT_PRINTING=false
+BOOTSTRAP_CLI_PATH=""
 
 MAKE="make"
 if [[ $OSTYPE == *[Bb][Ss][Dd]* ]]; then
@@ -67,6 +70,14 @@ do
         SKIP_COMMIT_PRINTING=true
         shift 1
         ;;
+        --bootstrap_cli_path)
+        BOOTSTRAP_CLI_PATH="$2"
+        shift 2
+        ;;
+        --bootstrap_msbuild_cli_path)
+        BOOTSTRAP_MSBUILD_CLI_PATH="$2"
+        shift 2
+        ;;
         *)
         usage 
         exit 1
@@ -75,6 +86,22 @@ do
 done
 
 MAKE_ARGS="BUILD_CONFIGURATION=$BUILD_CONFIGURATION SKIP_CROSSGEN=$SKIP_CROSSGEN"
+
+if [ ! "$BOOTSTRAP_CLI_PATH" == "" ] && [ "$BOOTSTRAP_MSBUILD_CLI_PATH" == "" ]; then
+    echo "Missing required argument '--boostrap_msbuild_cli_path'"
+    usage
+    exit 1
+fi
+if [ "$BOOTSTRAP_CLI_PATH" == "" ] && [ ! "$BOOTSTRAP_MSBUILD_CLI_PATH" == "" ]; then
+    echo "Missing required argument '--bootstrap_cli_path'"
+    usage
+    exit 1
+fi
+
+
+if [ ! "$BOOTSTRAP_CLI_PATH" == "" ]; then
+    MAKE_ARGS="$MAKE_ARGS BOOTSTRAP_CLI_PATH=$BOOTSTRAP_CLI_PATH BOOTSTRAP_MSBUILD_CLI_PATH=$BOOTSTRAP_MSBUILD_CLI_PATH"
+fi
 
 if [ "$CLEAN_RUN" == "true" ]; then
     echo Clean out the enlistment
@@ -92,6 +119,7 @@ if [ "$SKIP_COMMIT_PRINTING" == "false" ]; then
 fi
 
 echo Building Bootstrap
+echo $MAKE bootstrap $MAKE_ARGS
 $MAKE bootstrap $MAKE_ARGS 
 
 echo Building CrossPlatform.sln

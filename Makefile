@@ -8,13 +8,28 @@ TOOLSET_SRC_PATH = $(shell pwd)/build/MSBuildToolset
 TOOLSET_PATH = $(BINARIES_PATH)/toolset
 RESTORE_SEMAPHORE_PATH = $(BINARIES_PATH)/restore.semaphore
 BOOTSTRAP_PATH = $(BINARIES_PATH)/Bootstrap
+BOOTSTRAP_TOOLSET = 
 BUILD_LOG_PATH =
 HOME_DIR = $(shell cd ~ && pwd)
 DOTNET_VERSION = 1.0.0-preview3-003223
 NUGET_VERSION = 3.5.0-beta2
 NUGET_EXE = $(shell pwd)/nuget.exe
+CLI_PATH = $(BINARIES_PATH)/dotnet-cli
+MSBUILD_TOOLSET_PATH = $(BINARIES_PATH)/msbuild-dotnet-cli
 
-MSBUILD_ADDITIONALARGS := /v:m /fl /fileloggerparameters:Verbosity=normal /p:Configuration=$(BUILD_CONFIGURATION)
+MSBUILD_ADDITIONALARGS := /v:m /fl /fileloggerparameters:Verbosity=diagnostic /p:Configuration=$(BUILD_CONFIGURATION)
+
+# Change variables when bootstrapping on an unsupported linux distro 
+ifneq ($(BOOTSTRAP_CLI_PATH),)
+  BOOTSTRAP_DEPENDENCIES = $(MSBUILD_TOOLSET_PATH)
+  RESTORE_SCRIPT = @build/scripts/restore-msbuild.sh
+  MSBUILD_ADDITIONALARGS := $(MSBUILD_ADDITIONALARGS) /p:ExcludeNuGetRuntimeIdentifier=true
+  TOOLSET_SRC_PATH = $(shell pwd)/build/MSBuildToolset_msbuild
+  BOOTSTRAP_TOOLSET = copy_toolset_to_bootstrap
+else
+  BOOTSTRAP_DEPENDENCIES = $(TOOLSET_PATH)
+  RESTORE_SCRIPT = @build/scripts/restore.sh  
+endif
 
 ifeq ($(OS_NAME),Linux)
 	MSBUILD_ADDITIONALARGS := $(MSBUILD_ADDITIONALARGS) /p:BaseNuGetRuntimeIdentifier=$(shell . /etc/os-release && echo $$ID.$$VERSION_ID)
@@ -40,13 +55,17 @@ all: $(RESTORE_SEMAPHORE_PATH)
 	export HOME=$(HOME_DIR) ; \
 	$(MSBUILD_CMD) CrossPlatform.sln
 
-bootstrap: $(TOOLSET_PATH) $(RESTORE_SEMAPHORE_PATH)
+bootstrap: $(BOOTSTRAP_DEPENDENCIES) $(RESTORE_SEMAPHORE_PATH) $(BOOTSTRAP_TOOLSET)
 	export HOME=$(HOME_DIR) ; \
 	$(MSBUILD_CMD) src/Compilers/CSharp/CscCore/CscCore.csproj && \
 	$(MSBUILD_CMD) src/Compilers/VisualBasic/VbcCore/VbcCore.csproj && \
 	mkdir -p $(BOOTSTRAP_PATH) && \
 	cp -f Binaries/$(BUILD_CONFIGURATION)/Exes/CscCore/* $(BOOTSTRAP_PATH) && \
 	cp -f Binaries/$(BUILD_CONFIGURATION)/Exes/VbcCore/* $(BOOTSTRAP_PATH)
+
+copy_toolset_to_bootstrap:
+	mkdir -p $(BOOTSTRAP_PATH) && \
+	cp -fr $(CLI_PATH)/../toolset/* $(BOOTSTRAP_PATH)
 
 ifneq ($(SKIP_CROSSGEN),true)
 	build/scripts/crossgen.sh $(BOOTSTRAP_PATH)
@@ -59,8 +78,8 @@ test:
 
 restore: $(NUGET_EXE) $(RESTORE_SEMAPHORE_PATH)
 
-$(RESTORE_SEMAPHORE_PATH): $(TOOLSET_PATH)
-	@build/scripts/restore.sh $(TOOLSET_PATH) $(NUGET_EXE) && \
+$(RESTORE_SEMAPHORE_PATH):
+	$(RESTORE_SCRIPT) $(TOOLSET_PATH) $(NUGET_EXE) && \
 	touch $(RESTORE_SEMAPHORE_PATH)
 
 $(NUGET_EXE):
@@ -76,17 +95,33 @@ clean_toolset:
 
 toolset: $(TOOLSET_PATH)
 
-$(TOOLSET_PATH): $(BINARIES_PATH)/dotnet-cli
+$(MSBUILD_TOOLSET_PATH): $(BOOTSTRAP_CLI_PATH)	
 	export HOME=$(HOME_DIR) ; \
 	pushd $(TOOLSET_SRC_PATH) ; \
-	$(BINARIES_PATH)/dotnet-cli/dotnet restore && \
-	$(BINARIES_PATH)/dotnet-cli/dotnet publish -o $(TOOLSET_PATH) && \
+	$(MSBUILD_TOOLSET_PATH)/dotnet restore && \
+	$(MSBUILD_TOOLSET_PATH)/dotnet publish -o $(TOOLSET_PATH) 
+	sed -i -e 's/Microsoft.CSharp.Targets/Microsoft.CSharp.targets/g' $(TOOLSET_PATH)/Microsoft/Portable/v5.0/Microsoft.Portable.CSharp.targets
+
+$(TOOLSET_PATH): $(CLI_PATH)	
+	export HOME=$(HOME_DIR) ; \
+	pushd $(TOOLSET_SRC_PATH) ; \
+	$(CLI_PATH)/dotnet restore && \
+	$(CLI_PATH)/dotnet publish -o $(TOOLSET_PATH)
 	sed -i -e 's/Microsoft.CSharp.Targets/Microsoft.CSharp.targets/g' $(TOOLSET_PATH)/Microsoft/Portable/v5.0/Microsoft.Portable.CSharp.targets
 # https://github.com/dotnet/roslyn/issues/9641
 
-$(BINARIES_PATH)/dotnet-cli:
-	@mkdir -p $(BINARIES_PATH) ; \
+$(CLI_PATH): make_cli_dir
 	pushd $(BINARIES_PATH) ; \
 	curl -O https://raw.githubusercontent.com/dotnet/cli/rel/1.0.0/scripts/obtain/dotnet-install.sh ; \
 	chmod +x dotnet-install.sh ; \
-	./dotnet-install.sh --version "$(DOTNET_VERSION)" --install-dir "$(BINARIES_PATH)/dotnet-cli"
+	./dotnet-install.sh --version "$(DOTNET_VERSION)" --install-dir "$(CLI_PATH)" ;	
+
+$(BOOTSTRAP_CLI_PATH): make_cli_dir make_msbuild_cli_dir
+	cp -fR $(BOOTSTRAP_CLI_PATH)/* $(CLI_PATH) ; \
+	cp -fR $(BOOTSTRAP_MSBUILD_CLI_PATH)/* $(MSBUILD_TOOLSET_PATH) ;
+
+make_cli_dir:
+	@mkdir -p $(CLI_PATH) ; 
+
+make_msbuild_cli_dir:
+	@mkdir -p $(MSBUILD_TOOLSET_PATH) ;

@@ -17,7 +17,7 @@
     <When Condition="'$(RoslynProjectType)' == 'UnitTest'">
       <PropertyGroup>
         <_IsAnyUnitTest>true</_IsAnyUnitTest>
-        <CopyNuGetImplementations>true</CopyNuGetImplementations>
+        <CopyNuGetImplementations Condition="'$(CopyNuGetImplementations)' == ''">true</CopyNuGetImplementations>
         <OutDir>$(OutDir)UnitTests\$(MSBuildProjectName)\</OutDir>
       </PropertyGroup>
     </When>
@@ -52,7 +52,7 @@
     <When Condition="'$(RoslynProjectType)' == 'Vsix'">
       <PropertyGroup>
         <_CopyReferences>false</_CopyReferences>
-        <CopyNuGetImplementations>true</CopyNuGetImplementations>
+        <CopyNuGetImplementations Condition="'$(CopyNuGetImplementations)' == ''">true</CopyNuGetImplementations>
         <OutDir>$(OutDir)Vsix\$(MSBuildProjectName)\</OutDir>
       </PropertyGroup>
     </When>
@@ -61,7 +61,7 @@
            stack traces are involved -->
       <PropertyGroup>
         <AllowedReferenceRelatedFileExtensions>$(AllowedReferenceRelatedFileExtensions);.pdb</AllowedReferenceRelatedFileExtensions>
-        <CopyNuGetImplementations>true</CopyNuGetImplementations>
+        <CopyNuGetImplementations Condition="'$(CopyNuGetImplementations)' == ''">true</CopyNuGetImplementations>
       </PropertyGroup>
     </When>
     <When Condition="'$(RoslynProjectType)' == 'Custom' OR $(RoslynProjectType) == 'DeploymentTest'">
@@ -77,13 +77,13 @@
     </When>
     <When Condition="'$(RoslynProjectType)' == '' AND '$(OutputType)' == 'Exe'">
       <PropertyGroup>
-        <CopyNuGetImplementations>true</CopyNuGetImplementations>
+        <CopyNuGetImplementations Condition="'$(CopyNuGetImplementations)' == ''">true</CopyNuGetImplementations>
         <OutDir>$(OutDir)Exes\$(MSBuildProjectName)\</OutDir>
       </PropertyGroup>
     </When>
     <When Condition="'$(RoslynProjectType)' == '' AND '$(OutputType)' == 'WinExe'">
       <PropertyGroup>
-        <CopyNuGetImplementations>true</CopyNuGetImplementations>
+        <CopyNuGetImplementations Condition="'$(CopyNuGetImplementations)' == ''">true</CopyNuGetImplementations>
         <OutDir>$(OutDir)Exes\$(MSBuildProjectName)\</OutDir>
       </PropertyGroup>
     </When>

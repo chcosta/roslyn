@@ -31,8 +31,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-      <CoreRunExe Condition="'$(OS)' == 'Windows_NT'">$(CompilerGeneratorToolsDir)CoreRun.exe</CoreRunExe>
-      <CoreRunExe Condition="'$(OS)' != 'Windows_NT'">$(CompilerGeneratorToolsDir)corerun</CoreRunExe>
+      <CoreRunExe Condition="'$(OS)' == 'Windows_NT'">$(MSBuildToolsPath)/CoreRun.exe</CoreRunExe>
+      <CoreRunExe Condition="'$(OS)' != 'Windows_NT'">$(MSBuildToolsPath)/corerun</CoreRunExe>
       <CSharpSyntaxGeneratorToolPath>$(CompilerGeneratorToolsDir)CSharpSyntaxGenerator.exe</CSharpSyntaxGeneratorToolPath>
       <CSharpErrorFactsGeneratorToolPath>$(CompilerGeneratorToolsDir)CSharpErrorFactsGenerator.exe</CSharpErrorFactsGeneratorToolPath>
       <VBErrorFactsGeneratorToolPath>$(CompilerGeneratorToolsDir)VBErrorFactsGenerator.exe</VBErrorFactsGeneratorToolPath>
