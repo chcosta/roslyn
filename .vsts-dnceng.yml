@@ -119,7 +119,7 @@ phases:
 
 - phase: Linux_Test
   queue:
-    name: dnceng-linux-external-temp-pr
+    name: Hosted Linux Preview
     timeoutInMinutes: 90
     parallel: 2
     matrix:
