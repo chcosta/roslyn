@@ -119,7 +119,7 @@ phases:
 
 - phase: Linux_Test
   queue:
-    name: Hosted Linux Preview
+    name: Hosted Ubuntu 1604
     timeoutInMinutes: 90
     parallel: 2
     matrix:
