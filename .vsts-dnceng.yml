@@ -119,7 +119,7 @@ phases:
 
 - phase: Linux_Test
   queue:
-    name: dnceng-linux-external-temp
+    name: dnceng-linux-external-temp-pr
     timeoutInMinutes: 90
     parallel: 2
     matrix:
@@ -146,7 +146,7 @@ phases:
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: '$(Build.SourcesDirectory)/Binaries/$(_configuration)/Logs'
+        PathtoPublish: '$(Build.SourcesDirectory)/Binaries/Debug/Logs'
         ArtifactName: 'Linux $(_name)'
         publishLocation: Container
       continueOnError: true
